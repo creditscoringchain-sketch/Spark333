@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SparkPoint</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+    <style>
+        :root {
+            --primary: #00ff9d;
+            --secondary: #00b8ff;
+            --admin: #ffd700;
+            --bg: #0f0f1a;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --glass: rgba(255, 255, 255, 0.07);
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+            /* Новые цвета для неона */
+            --neon-gold: #ffd700;
+            --neon-glow: #ff8c00;
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { 
+            background: radial-gradient(circle at top center, #1a1a2e 0%, #0f0f1a 100%); 
+            color: #fff; 
+            padding: 20px; 
+            margin: 0; 
+            min-height: 100vh;
+        }
+        .container { max-width: 500px; margin: 0 auto; }
+
+        /* --- UPDATED HEADER DESIGN --- */
+        header { 
+            display: flex; 
+            flex-direction: column; /* Элементы друг под другом */
+            align-items: center; /* Всё по центру */
+            justify-content: center;
+            margin-bottom: 25px; 
+            padding: 20px; 
+            background: rgba(20, 20, 35, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 24px; 
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            gap: 15px; /* Отступ между названием и кошельком */
+        }
+
+        .logo-area { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            gap: 12px; 
+            width: 100%;
+        }
+
+        /* Новый логотип (деньги) */
+        .logo-icon { 
+            font-size: 2.2rem; 
+            filter: drop-shadow(0 0 10px var(--neon-gold));
+        }
+
+        /* Новое название (Неоновый стиль) */
+        h1 { 
+            margin: 0; 
+            font-size: 1.8rem; 
+            font-weight: 800; 
+            letter-spacing: 1px;
+            /* Золотой градиент */
+            background: linear-gradient(135deg, #fff 0%, var(--neon-gold) 50%, var(--neon-glow) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            /* Неоновое свечение */
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            text-transform: uppercase;
+        }
+
+        /* Стиль адреса кошелька (внизу) */
+        #walletDisplay {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.3); /* Золотая рамка */
+            padding: 10px 25px;
+            border-radius: 50px;
+            color: var(--neon-gold);
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1rem;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+            letter-spacing: 1px;
+            width: 100%;
+            text-align: center;
+            max-width: 280px;
+        }
+
+        /* --- CARDS & PANELS --- */
+        .card { 
+            background: var(--card-bg); 
+            padding: 25px; 
+            border-radius: 24px; 
+            border: 1px solid var(--border); 
+            margin-bottom: 20px; 
+            box-shadow: var(--shadow);
+        }
+        .hidden { display: none; }
+
+        /* --- STATS GRID --- */
+        .stat-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr 1fr; 
+            gap: 10px; 
+            background: transparent; 
+            padding: 0;
+            border: none;
+            box-shadow: none;
+        }
+        .stat-box {
+            background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+            border: 1px solid var(--border);
+            padding: 15px 10px;
+            border-radius: 18px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .stat-box:active { transform: scale(0.98); }
+        .stat-box::before {
+            content: ''; position: absolute; top:0; left:0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+        .stat-val { 
+            font-size: 1.3rem; font-weight: 800; color: #fff; margin-top: 8px;
+            text-shadow: 0 0 20px rgba(0,255,157,0.4);
+            word-break: break-all;
+        }
+        .stat-label { 
+            font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+        }
+
+        /* --- BUTTONS --- */
+        button { cursor: pointer; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 700; transition: 0.3s; font-size: 1rem; }
+        button:hover { filter: brightness(1.1); }
+        button:active { transform: scale(0.96); }
+        
+        .btn-connect { 
+            background: linear-gradient(135deg, var(--primary), #00cc7a); 
+            color: #001a10; 
+            box-shadow: 0 4px 15px rgba(0, 255, 157, 0.3);
+            width: 100%; /* Кнопка на всю ширину в новом хедере */
+            max-width: 200px;
+        }
+        
+        .btn-pay { 
+            background: linear-gradient(135deg, var(--secondary), #008ecc); 
+            color: #fff; width: 100%; padding: 16px; font-size: 1.1rem; 
+            box-shadow: 0 4px 15px rgba(0, 184, 255, 0.3);
+        }
+        
+        .btn-copy { background: rgba(255,255,255,0.1); color: #fff; margin-left: 10px; border: 1px solid var(--border); }
+        .btn-admin { background: var(--admin); color: #000; width: 100%; margin-top: 10px; font-weight: bold; }
+
+        /* --- INPUTS --- */
+        input { 
+            width: 100%; padding: 14px; border-radius: 12px; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            background: rgba(0,0,0,0.4); color: #fff; margin: 8px 0 20px 0; 
+            font-size: 1rem; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: var(--secondary); background: rgba(0,0,0,0.6); }
+        label { color: #889; font-size: 0.9rem; margin-bottom: 5px; display: block; }
+
+        /* --- LEVELS VISUALS --- */
+        .level-row { margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; }
+        .level-header { display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 12px; font-weight: 600; color: #ddd; }
+        .circles { display: flex; flex-wrap: wrap; gap: 8px; }
+        .circle { 
+            width: 32px; height: 32px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 0.8rem; border: 1px solid #444; color: #555; background: rgba(0,0,0,0.2);
+            transition: 0.3s;
+        }
+        .circle.filled { 
+            background: var(--primary); border-color: var(--primary); color: #000; font-weight: bold;
+            box-shadow: 0 0 12px rgba(0,255,157,0.4); transform: scale(1.1);
+        }
+
+        /* Admin Panel specific */
+        #adminPanel { border: 1px solid var(--admin); display: none; background: rgba(255, 215, 0, 0.05); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <header>
+        <div class="logo-area">
+            <span class="logo-icon">💰</span> 
+            <h1>SparkPoint</h1>
+        </div>
+        
+        <button id="connectBtn" class="btn-connect" onclick="connectWallet()">Wallet Connect</button>
+        <div id="walletDisplay" class="hidden"></div>
+    </header>
+
+    <div id="adminPanel" class="card">
+        <h3 style="color: var(--admin); margin-top:0;">👑 ADMIN PANEL</h3>
+        <p>Contract Balance: <span id="contractBalance" style="color:#fff; font-weight:bold;">0</span> BNB</p>
+        <button class="btn-admin" onclick="withdraw()">Withdraw All</button>
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 0;">
+        <label>Free Registration:</label>
+        <input type="text" id="admUser" placeholder="New User Address">
+        <input type="text" id="admRef" placeholder="Referrer Address">
+        <button class="btn-admin" onclick="adminAddUser()" style="background: #fff; color: #000;">Add Free User</button>
+    </div>
+
+    <div class="card stat-grid">
+        <div class="stat-box">
+            <div class="stat-label">🚀 Level</div>
+            <div class="stat-val" id="userLevel">-</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">👥 Refs</div>
+            <div class="stat-val" id="userRefs">0 / 2</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">💰 Balance</div>
+            <div class="stat-val"><span id="userBalance">0</span> <span style="font-size:0.5em; vertical-align:middle;">BNB</span></div>
+        </div>
+    </div>
+
+    <div id="registerBlock" class="card">
+        <h3 style="margin-top:0; text-align: center;">🚀 Join SparkPoint</h3>
+        <p style="color:#aaa; font-size:0.95rem; margin-bottom:20px; text-align: center;">Activation Cost: <span style="color:white; font-weight:bold;">0.001 BNB</span></p>
+        
+        <label>Invited by (Referrer):</label>
+        <input type="text" id="inviterInput" placeholder="0x...">
+        
+        <button class="btn-pay" onclick="register()">ACTIVATE ACCOUNT</button>
+        <p id="regStatus" style="margin-top:15px; color:#ff4b4b; display:none; text-align:center; background: rgba(255,0,0,0.1); padding: 10px; border-radius: 8px;"></p>
+    </div>
+
+    <div id="dashboardBlock" class="hidden">
+        
+        <div class="card">
+            <h3 style="margin-top:0; color: var(--primary); margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom:10px;">📊 Level Progress</h3>
+            <div id="levelsContainer"></div>
+        </div>
+
+        <div class="card" style="background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0) 100%);">
+            <label style="color:white; font-weight: bold;">🔗 Your Referral Link:</label>
+            <div style="display:flex;">
+                <input type="text" id="myRefLink" readonly style="margin-bottom:0; border-top-right-radius: 0; border-bottom-right-radius: 0;">
+                <button class="btn-copy" onclick="copyLink()" style="border-radius: 0 12px 12px 0;">Copy</button>
+            </div>
+            <p style="font-size:0.85rem; color:#888; margin-top:12px;">Share this link to invite new partners and earn BNB.</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- SETTINGS ---
+    const CONTRACT_ADDRESS = '0x929E43eB3587f173cDBB7595ade003A6C1137Ce2';
+    const ABI = [
+        {"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+        {"inputs":[{"internalType":"address","name":"_user","type":"address"},{"internalType":"address","name":"_referrer","type":"address"}],"name":"adminAddUser","outputs":[],"stateMutability":"nonpayable","type":"function"},
+        {"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
+        {"inputs":[{"internalType":"address","name":"_user","type":"address"}],"name":"getUserStatus","outputs":[{"internalType":"uint256","name":"currentLevel","type":"uint256"},{"internalType":"address","name":"hisReferrer","type":"address"},{"internalType":"uint256","name":"filledInCurrentLevel","type":"uint256"},{"internalType":"uint256","name":"neededForNextLevel","type":"uint256"},{"internalType":"uint256","name":"totalPersonalReferrals","type":"uint256"},{"internalType":"uint256","name":"balance","type":"uint256"},{"internalType":"bool","name":"isRegistered","type":"bool"}],"stateMutability":"view","type":"function"},
+        {"inputs":[{"internalType":"address","name":"_referrer","type":"address"}],"name":"register","outputs":[],"stateMutability":"payable","type":"function"}
+    ];
+    // Лимиты уровней: 1 ур = 2, 2 ур = 6, 3 ур = 14
+    const LEVEL_CAPS = [0, 2, 6, 14]; 
+
+    let web3, contract, userAccount;
+
+    // 1. LOAD
+    window.addEventListener('load', () => {
+        const params = new URLSearchParams(window.location.search);
+        if(params.get('ref')) document.getElementById('inviterInput').value = params.get('ref');
+
+        if(window.ethereum) {
+            web3 = new Web3(window.ethereum);
+            contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+        }
+    });
+
+    // 2. CONNECT
+    async function connectWallet() {
+        if(!window.ethereum) return alert("Install MetaMask!");
+        
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        userAccount = accounts[0];
+
+        // UI update
+        document.getElementById('connectBtn').classList.add('hidden');
+        document.getElementById('walletDisplay').classList.remove('hidden');
+        document.getElementById('walletDisplay').innerText = userAccount.substring(0,6) + '...' + userAccount.slice(-4);
+
+        loadData();
+    }
+
+    // 3. LOAD DATA & RENDER
+    async function loadData() {
+        try {
+            const data = await contract.methods.getUserStatus(userAccount).call();
+            const isAdmin = (await contract.methods.admin().call()).toLowerCase() === userAccount.toLowerCase();
+
+            // Stats
+            const currentLevel = parseInt(data.currentLevel);
+            const filled = parseInt(data.filledInCurrentLevel);
+            const isReg = data.isRegistered;
+            const balanceEth = web3.utils.fromWei(data.balance, 'ether'); 
+
+            document.getElementById('userLevel').innerText = isReg ? currentLevel : '-';
+            document.getElementById('userRefs').innerText = isReg ? `${data.totalPersonalReferrals} / 2` : '0 / 2';
+            document.getElementById('userBalance').innerText = isReg ? parseFloat(balanceEth).toFixed(4) : '0';
+
+            // Admin Logic
+            if(isAdmin) {
+                document.getElementById('adminPanel').style.display = 'block';
+                const bal = await web3.eth.getBalance(CONTRACT_ADDRESS);
+                document.getElementById('contractBalance').innerText = web3.utils.fromWei(bal, 'ether');
+            }
+
+            // Screen Logic
+            if(isReg) {
+                document.getElementById('registerBlock').classList.add('hidden');
+                document.getElementById('dashboardBlock').classList.remove('hidden');
+                
+                // Link Gen
+                const baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+                document.getElementById('myRefLink').value = `${baseUrl}?ref=${userAccount}`;
+
+                // RENDER LEVELS
+                renderLevels(currentLevel, filled);
+            } else {
+                document.getElementById('registerBlock').classList.remove('hidden');
+                document.getElementById('dashboardBlock').classList.add('hidden');
+            }
+
+        } catch(e) { console.error(e); }
+    }
+
+    // 4. RENDER LEVELS FUNCTION
+    function renderLevels(currLvl, filledCount) {
+        const container = document.getElementById('levelsContainer');
+        container.innerHTML = ""; // Clear old
+
+        for(let lvl = 1; lvl <= 3; lvl++) {
+            const max = LEVEL_CAPS[lvl];
+            let done = 0;
+            
+            if (lvl < currLvl) done = max;
+            else if (lvl === currLvl) done = filledCount;
+            
+            let circlesHtml = '';
+            for(let i = 0; i < max; i++) {
+                const isFilled = i < done;
+                circlesHtml += `<div class="circle ${isFilled ? 'filled' : ''}">${isFilled ? '✓' : i+1}</div>`;
+            }
+
+            const opacity = lvl > currLvl ? '0.3' : '1';
+
+            const rowHtml = `
+                <div class="level-row" style="opacity: ${opacity}">
+                    <div class="level-header">
+                        <span>Level ${lvl}</span>
+                        <span style="color:var(--primary)">${done} / ${max}</span>
+                    </div>
+                    <div class="circles">${circlesHtml}</div>
+                </div>
+            `;
+            container.innerHTML += rowHtml;
+        }
+    }
+
+    // 5. COPY LINK
+    function copyLink() {
+        const input = document.getElementById('myRefLink');
+        input.select();
+        input.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(input.value).then(() => alert('Copied!'));
+    }
+
+    // 6. ACTIONS
+    async function register() {
+        const ref = document.getElementById('inviterInput').value.trim();
+        const st = document.getElementById('regStatus');
+        
+        if(!web3.utils.isAddress(ref)) {
+            st.innerText = "Invalid Referrer Address";
+            st.style.display = 'block';
+            return;
+        }
+        try {
+            await contract.methods.register(ref).send({from: userAccount, value: web3.utils.toWei('0.001', 'ether')});
+            location.reload();
+        } catch(e) {
+            st.innerText = e.message;
+            st.style.display = 'block';
+        }
+    }
+
+    async function adminAddUser() {
+        try {
+            await contract.methods.adminAddUser(
+                document.getElementById('admUser').value, 
+                document.getElementById('admRef').value
+            ).send({from: userAccount});
+            alert("Done!"); loadData();
+        } catch(e) { alert(e.message); }
+    }
+
+    async function withdraw() {
+        try {
+            await contract.methods.withdraw().send({from: userAccount});
+            alert("Withdrawn!"); loadData();
+        } catch(e) { alert(e.message); }
+    }
+</script>
+
+</body>
+  </html>
+  
